@@ -84,10 +84,10 @@ lines.each do |l|
                         puts "%f : CHIP_ERASE" % time
                 end
             when SPI_STATE::READ_STATUS
-                puts "%f : RSR : %x" % [time, mosi]
+                puts "%f : RSR : 0x%02x" % [time, miso]
                 state = SPI_STATE::CMD_WAIT
             when SPI_STATE::WRITE_STATUS
-                puts "%f : WSR : %x" % [time, mosi]
+                puts "%f : WSR : 0x%02x" % [time, mosi]
                 state = SPI_STATE::CMD_WAIT
             when SPI_STATE::READ_ID
                 if data.length < 3 then
