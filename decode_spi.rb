@@ -84,7 +84,7 @@ lines.each do |l|
                         puts "%f : CHIP_ERASE" % time
                 end
             when SPI_STATE::READ_STATUS
-                puts "%f : RSR : %x" % [time, mosi]
+                puts "%f : RSR : %x" % [time, miso]
                 state = SPI_STATE::CMD_WAIT
             when SPI_STATE::WRITE_STATUS
                 puts "%f : WSR : %x" % [time, mosi]
