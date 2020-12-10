@@ -50,6 +50,7 @@ data = []
 last_time = 0
 last_read = 0
 add_int = 0
+is_pp_active = false
 lines.each do |l|
     if l =~ %r{^-?[0-9.]+,} then
         # We have two possible formats, depending if it was exported from the
@@ -107,6 +108,7 @@ lines.each do |l|
                     puts "%f : PP @ 0x%x" %  [time, add_int ]
                     state = SPI_STATE::DATA_READ
                     data = []
+                    is_pp_active = true
                 end
             when SPI_STATE::SECTOR_ERASE
                 if address.length < 2 then
@@ -150,8 +152,13 @@ lines.each do |l|
                    puts data.map {|p| "0x%02x" % p}.join(',')
                    state = next_state(mosi)
                    address = []
+                   is_pp_active = false
                else
-                   data << miso
+                   if is_pp_active then
+                       data << mosi
+                   else
+                       data << miso
+                   end
                end
         end
         last_time = time
