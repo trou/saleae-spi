@@ -40,6 +40,14 @@ def next_state(mosi)
     end
 end
 
+def dump_data(data, add_int, dump)
+    if dump then
+        dump.seek(add_int)
+        dump.write(data.pack('C*'))
+    end
+    puts data.map {|p| "0x%02x" % p}.join(',')
+end
+
 lines = File.readlines(ARGV.shift)
 if ARGV[0] then
     dump = File.open(ARGV[0], 'wb+')
@@ -145,13 +153,10 @@ lines.each do |l|
                 # is unactive, however saleae does not export that
                 # information. So we rely on timing.
                 if (time-last_time) > 4.0e-6 then
-                    if dump then
-                        dump.seek(add_int)
-                        dump.write(data.pack('C*'))
-                    end
-                    puts data.map {|p| "0x%02x" % p}.join(',')
+                    dump_data(data, add_int, dump)
                     state = next_state(mosi)
                     address = []
+                    data = []
                     is_pp_active = false
                 else
                     if is_pp_active then
@@ -163,4 +168,8 @@ lines.each do |l|
         end
         last_time = time
     end
+end
+
+if state == SPI_STATE::DATA_READ and not data.empty?
+    dump_data(data, add_int, dump)
 end
