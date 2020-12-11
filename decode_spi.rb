@@ -42,7 +42,7 @@ end
 
 lines = File.readlines(ARGV.shift)
 if ARGV[0] then
-  dump = File.open(ARGV[0], 'wb+')
+    dump = File.open(ARGV[0], 'wb+')
 end
 state = SPI_STATE::CMD_WAIT
 address = []
@@ -50,6 +50,7 @@ data = []
 last_time = 0
 last_read = 0
 add_int = 0
+is_pp_active = false
 lines.each do |l|
     if l =~ %r{^-?[0-9.]+,} then
         # We have two possible formats, depending if it was exported from the
@@ -57,10 +58,10 @@ lines.each do |l|
         # 8.243531570000000,0,0x03,0xFF
         # 3.498075850000000,SPI,MOSI: 0x03;  MISO: 0xFF
         if l.count(",") == 2 then
-          time, _proto, mosi_miso = l.split(',')
-          mosi, miso = mosi_miso.split(';') 
+            time, _proto, mosi_miso = l.split(',')
+            mosi, miso = mosi_miso.split(';')
         else
-          time, _proto, mosi, miso = l.split(',')
+            time, _proto, mosi, miso = l.split(',')
         end
         time = time.to_f
         mosi = mosi[/.*(0x[0-9A-F]+)/,1].to_i(16)
@@ -107,6 +108,7 @@ lines.each do |l|
                     puts "%f : PP @ 0x%x" %  [time, add_int ]
                     state = SPI_STATE::DATA_READ
                     data = []
+                    is_pp_active = true
                 end
             when SPI_STATE::SECTOR_ERASE
                 if address.length < 2 then
@@ -139,20 +141,25 @@ lines.each do |l|
                     data = []
                 end
             when SPI_STATE::DATA_READ
-               # In theory we should read data until the CS line
-               # is unactive, however saleae does not export that
-               # information. So we rely on timing.
-               if (time-last_time) > 4.0e-6 then
-                   if dump then
-                       dump.seek(add_int)
-                       dump.write(data.pack('C*'))
-                   end
-                   puts data.map {|p| "0x%02x" % p}.join(',')
-                   state = next_state(mosi)
-                   address = []
-               else
-                   data << miso
-               end
+                # In theory we should read data until the CS line
+                # is unactive, however saleae does not export that
+                # information. So we rely on timing.
+                if (time-last_time) > 4.0e-6 then
+                    if dump then
+                        dump.seek(add_int)
+                        dump.write(data.pack('C*'))
+                    end
+                    puts data.map {|p| "0x%02x" % p}.join(',')
+                    state = next_state(mosi)
+                    address = []
+                    is_pp_active = false
+                else
+                    if is_pp_active then
+                        data << mosi
+                    else
+                        data << miso
+                    end
+                end
         end
         last_time = time
     end
